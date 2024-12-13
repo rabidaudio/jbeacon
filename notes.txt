@@ -1,0 +1,17 @@
+MVP:
+Show device - in range? approx distance?
+Send notif when not in range
+Send notif if bt disabled
+
+optimize battery life
+
+strech - app:
+multiple devices
+track location, record last known location
+send notif when battery low
+
+strech - hw:
+buzzer: buzz when disconnected
+buzz when commanded
+acel/gyro motion detection to reduce advertising
+
