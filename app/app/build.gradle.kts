@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "audio.rabid.jbeacon"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -56,10 +56,13 @@ dependencies {
     // Compose
     implementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     // Choose one of the following:
     // Material Design 3
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.compose.material)
+    implementation(libs.androidx.material.icons.extended)
 
     // Android Studio Preview support
     implementation(libs.androidx.ui.tooling.preview)
