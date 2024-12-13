@@ -15,3 +15,9 @@ buzzer: buzz when disconnected
 buzz when commanded
 acel/gyro motion detection to reduce advertising
 
+
+
+https://cdn.sparkfun.com/assets/3/d/5/5/1/IN100-Datasheet.pdf
+
+https://learn.sparkfun.com/tutorials/sparkfun-nanobeacon-board---in100-hookup-guide
+
