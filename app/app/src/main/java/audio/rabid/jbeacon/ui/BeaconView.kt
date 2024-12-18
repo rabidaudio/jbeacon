@@ -16,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import audio.rabid.jbeacon.Beacon
+import audio.rabid.jbeacon.BeaconManager.BeaconStatus
 import audio.rabid.jbeacon.ui.theme.JBeaconTheme
 import audio.rabid.jbeacon.ui.theme.Typography
 import audio.rabid.jbeacon.vm.BeaconViewModel
@@ -24,21 +26,19 @@ import kotlinx.coroutines.flow.StateFlow
 import java.time.Instant
 
 @Composable
-fun Beacon(
-    name: String, modifier: Modifier = Modifier, stateFlow: StateFlow<BeaconViewModel.State>
+fun BeaconView(
+    beacon: Beacon, modifier: Modifier = Modifier, status: BeaconStatus
 ) {
-    val state = stateFlow.collectAsStateWithLifecycle()
-
     Card(
         modifier
             .fillMaxWidth()
             .padding(16.0.dp)
     ) {
-        Text(name, Modifier.padding(8.dp), style = Typography.bodyLarge)
+        Text(beacon.name, Modifier.padding(8.dp), style = Typography.bodyLarge)
 
-        val (icon, text) = when (state.value) {
-            is BeaconViewModel.State.InRange -> Pair(Icons.Default.MyLocation, "In Range")
-            is BeaconViewModel.State.OutOfRange -> Pair(
+        val (icon, text) = when (status) {
+            is BeaconStatus.InRange -> Pair(Icons.Default.MyLocation, "In Range")
+            is BeaconStatus.OutOfRange -> Pair(
                 Icons.Default.LocationDisabled, "Out Of Range"
             )
         }
@@ -47,33 +47,44 @@ fun Beacon(
             Icon(icon, text, Modifier.padding(16.dp))
             Column {
                 Text(text = text, style = Typography.bodySmall)
-                val lastSeen = if (state.value.lastSeen == Instant.EPOCH) "never"
-                else DateUtils.getRelativeTimeSpanString(state.value.lastSeen.toEpochMilli())
-                Text(text = "Last Seen: $lastSeen", style = Typography.bodySmall)
+                Text(
+                    text = "Last Seen: ${status.relativeLastSeen()}",
+                    style = Typography.bodySmall
+                )
             }
         }
     }
 }
+
+private fun BeaconStatus.relativeLastSeen(): CharSequence = if (lastSeen == Instant.EPOCH) "never"
+else DateUtils.getRelativeTimeSpanString(lastSeen.toEpochMilli())
 
 @Preview(showBackground = true, widthDp = 320, heightDp = 570)
 @Composable
 fun BeaconPreview() {
     JBeaconTheme {
         Column {
-            Beacon(
-                name = "John's Keys", stateFlow = MutableStateFlow(
-                    BeaconViewModel.State.InRange(
-                        db = -30.0, lastSeen = Instant.now().minusSeconds(30)
-                    )
-                )
+            BeaconView(
+                beacon = Beacon(
+                    name = "John's Keys",
+                    macAddress = "AA:BB:CC:DD:EE:FF",
+                    lastSeen = Instant.now()
+                ),
+                status = BeaconStatus.InRange(
+                    rssi = -30.0f,
+                    lastSeen = Instant.now().minusSeconds(30)
+                ),
             )
 
-            Beacon(
-                name = "John's Phone", stateFlow = MutableStateFlow(
-                    BeaconViewModel.State.OutOfRange(
-                        lastSeen = Instant.now().minusSeconds(600)
-                    )
-                )
+            BeaconView(
+                beacon = Beacon(
+                    name = "John's Phone",
+                    macAddress = "00:11:22:33:44:55",
+                    lastSeen = Instant.now()
+                ),
+                status = BeaconStatus.OutOfRange(
+                    lastSeen = Instant.now().minusSeconds(600)
+                ),
             )
         }
     }
