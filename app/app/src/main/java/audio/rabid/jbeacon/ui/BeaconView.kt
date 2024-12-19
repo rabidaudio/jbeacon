@@ -21,14 +21,26 @@ import audio.rabid.jbeacon.BeaconManager.BeaconStatus
 import audio.rabid.jbeacon.ui.theme.JBeaconTheme
 import audio.rabid.jbeacon.ui.theme.Typography
 import audio.rabid.jbeacon.vm.BeaconViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.transform
 import java.time.Instant
 
 @Composable
 fun BeaconView(
     beacon: Beacon, modifier: Modifier = Modifier, status: BeaconStatus
 ) {
+
+    val lastSeen = flowOf(status).transform { s ->
+        while (true) {
+            emit(s.relativeLastSeen())
+            delay(5000)
+        }
+    }.collectAsStateWithLifecycle("")
+
+
     Card(
         modifier
             .fillMaxWidth()
@@ -48,16 +60,24 @@ fun BeaconView(
             Column {
                 Text(text = text, style = Typography.bodySmall)
                 Text(
-                    text = "Last Seen: ${status.relativeLastSeen()}",
+                    text = "Last Seen: ${lastSeen.value}",
                     style = Typography.bodySmall
                 )
+                if (status is BeaconStatus.InRange) {
+                    Text(text = "RSSI: ${status.rssi}")
+                    // TODO: estimated distance
+                }
             }
         }
     }
 }
 
-private fun BeaconStatus.relativeLastSeen(): CharSequence = if (lastSeen == Instant.EPOCH) "never"
-else DateUtils.getRelativeTimeSpanString(lastSeen.toEpochMilli())
+private fun BeaconStatus.relativeLastSeen(): CharSequence {
+    return if (lastSeen == Instant.EPOCH) "never"
+    else if ((System.currentTimeMillis()-lastSeen.toEpochMilli()) < 1000) "now"
+    else DateUtils.getRelativeTimeSpanString(lastSeen.toEpochMilli(),
+        System.currentTimeMillis(), DateUtils.SECOND_IN_MILLIS)
+}
 
 @Preview(showBackground = true, widthDp = 320, heightDp = 570)
 @Composable

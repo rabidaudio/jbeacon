@@ -1,5 +1,6 @@
 package audio.rabid.jbeacon
 
+import android.util.Log
 import audio.rabid.jbeacon.Scanner.Advertisement
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -7,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.transformLatest
@@ -46,9 +48,11 @@ class BeaconManager(
         // TODO: may need to serialize in range for background wakeups
 
         return scanner.advertisements
+            .onEach { Log.i("JB-BeaconManager", "new advertisement: $it") }
             .accumulateByAddress()
             .retriggerOnNextExpiry()
             .removeOldDevices()
+            .onEach { Log.i("JB-BeaconManager", "in range devices: $it") }
 
         // TODO: periodically save last seen status
     }
@@ -60,7 +64,7 @@ class BeaconManager(
         return inRangeDevices().combine(beacons) { inRange, knownBeacons ->
             val knownAddrs = knownBeacons.map { it.macAddress }.toSet()
             inRange.filterKeys { addr -> !knownAddrs.contains(addr) }.values.toSet()
-        }
+        }.onEach { Log.i("JB-BeaconManager", "in range NEW devices: $it") }
     }
 
     /**

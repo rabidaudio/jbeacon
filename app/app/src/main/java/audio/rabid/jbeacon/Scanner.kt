@@ -14,8 +14,15 @@ import android.os.ParcelUuid
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.buffer
 import java.time.Instant
 import java.util.UUID
 
@@ -26,7 +33,8 @@ class Scanner(private val applicationContext: Context) {
     data class Advertisement(
         val address: MacAddress,
         val rssi: Float, // in dBm, down to -127
-        val lastAdvertisement: Instant
+        val lastAdvertisement: Instant,
+        val name: String?
     )
 
     enum class State {
@@ -59,12 +67,15 @@ class Scanner(private val applicationContext: Context) {
 
     private val manager = applicationContext.getSystemService(BluetoothManager::class.java)
 
+    private val coroutineContext = CoroutineScope(Dispatchers.IO)
+
     var state = State.STARTING_UP
         private set
 
     private val _advertisements = MutableSharedFlow<Advertisement>()
 
-    val advertisements: SharedFlow<Advertisement> get() = _advertisements
+    val advertisements: Flow<Advertisement> get() = _advertisements
+        .buffer(capacity = 100, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
     // These are used to get proper timestamps from scan results
     private val startTime = Instant.now()
@@ -104,7 +115,7 @@ class Scanner(private val applicationContext: Context) {
             if (state != State.SCANNING_BACKGROUND) return
 
             stopBackground()
-            state = State.STARTING_UP
+            coroutineContext.cancel("Shutting down")
         }
     }
 
@@ -154,14 +165,18 @@ class Scanner(private val applicationContext: Context) {
                         "${result.scanRecord?.serviceSolicitationUuids} " +
                         "service data ${result.scanRecord?.serviceData}"
             )
-            _advertisements.tryEmit(result.toInRange())
+            coroutineContext.launch {
+                _advertisements.emit(result.toInRange())
+            }
         }
 
         override fun onBatchScanResults(results: MutableList<ScanResult>?) {
             results ?: return
             Log.d("JBEACON-BT", "onBatchScanResults: $results")
-            for (result in results) {
-                _advertisements.tryEmit(result.toInRange())
+            coroutineContext.launch {
+                for (result in results) {
+                    _advertisements.emit(result.toInRange())
+                }
             }
         }
 
@@ -205,9 +220,11 @@ class Scanner(private val applicationContext: Context) {
     private fun ScanResult.getAdvertisementTime(): Instant =
         startTime.plusNanos(timestampNanos - bootTimeNanos)
 
+    @SuppressLint("MissingPermission")
     private fun ScanResult.toInRange() = Advertisement(
         address = device.address,
         rssi = rssi.toFloat(),
-        lastAdvertisement = getAdvertisementTime()
+        lastAdvertisement = getAdvertisementTime(),
+        name = device.name
     )
 }
