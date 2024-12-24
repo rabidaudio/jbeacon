@@ -19,16 +19,23 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.whenStarted
+import androidx.lifecycle.withStarted
 import audio.rabid.jbeacon.ui.AddBeaconView
 import audio.rabid.jbeacon.ui.BeaconsListView
 import audio.rabid.jbeacon.ui.ErrorView
 import audio.rabid.jbeacon.ui.theme.JBeaconTheme
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import kotlin.coroutines.coroutineContext
 
 class MainActivity : ComponentActivity() {
 
@@ -42,18 +49,14 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         val vm = androidViewModel<BeaconViewModel>()
 
-        val permissionLauncher = registerForActivityResult(RequestMultiplePermissions()) {
+        val permissionRequester = vm.permissions.createPermissionRequester(this) {
             vm.permissionsGranted()
-        }
-        fun requestBluetoothPermissions() {
-            permissionLauncher.launch(Scanner.requiredPermissions.toTypedArray())
         }
 
         val enableBluetoothLauncher = registerForActivityResult(EnableBluetooth) { enabled ->
@@ -80,28 +83,6 @@ class MainActivity : ComponentActivity() {
             JBeaconTheme {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
-//                    topBar = {
-//                        TopAppBar(
-//                            colors = topAppBarColors(
-//                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-//                                titleContentColor = MaterialTheme.colorScheme.primary,
-//                            ),
-//                            navigationIcon = {
-//                                if (state.value is BeaconViewModel.State.AddingBeacon) {
-//                                    IconButton(onClick = { vm.back() }) {
-//                                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-//                                    }
-//                                }
-//                            },
-//                            title = {
-//                                if (state.value is BeaconViewModel.State.AddingBeacon) {
-//                                    Text("Add Beacon")
-//                                } else {
-//                                    Text("JBeacon")
-//                                }
-//                            }
-//                        )
-//                    },
                     floatingActionButton = {
                         if (state.value is BeaconViewModel.State.BeaconList) {
                             FloatingActionButton(
@@ -130,11 +111,14 @@ class MainActivity : ComponentActivity() {
                             )
 
                             BeaconViewModel.State.ErrorState.NoPermissions -> {
-                                requestBluetoothPermissions()
-
+                                LaunchedEffect("no-permissions") {
+                                    lifecycle.withStarted {
+                                        permissionRequester.request()
+                                    }
+                                }
                                 ErrorView(
                                     message = "Bluetooth permissions need to be granted.",
-                                    onClick = { requestBluetoothPermissions() }
+                                    onClick = { permissionRequester.request() }
                                 )
                             }
 

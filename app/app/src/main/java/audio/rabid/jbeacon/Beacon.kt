@@ -29,4 +29,6 @@ data class Beacon(
             .put("last_seen", lastSeen.toEpochMilli())
             .toString()
     }
+
+    val stableId: Int get() = macAddress.replace(":", "").toLong(16).toInt()
 }

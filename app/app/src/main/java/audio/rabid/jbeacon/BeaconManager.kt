@@ -25,7 +25,6 @@ typealias BeaconStatuses = Map<Beacon, BeaconManager.BeaconStatus>
 class BeaconManager(
     private val scanner: Scanner,
     private val db: DB
-    // notification manager
 ) {
 
     sealed class BeaconStatus {

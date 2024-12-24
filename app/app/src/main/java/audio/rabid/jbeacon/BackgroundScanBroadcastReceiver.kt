@@ -1,17 +1,15 @@
 package audio.rabid.jbeacon
 
 import android.app.PendingIntent
-import android.bluetooth.BluetoothAdapter
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.timeout
 import kotlinx.coroutines.runBlocking
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 class BackgroundScanBroadcastReceiver : BroadcastReceiver() {
@@ -26,10 +24,12 @@ class BackgroundScanBroadcastReceiver : BroadcastReceiver() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 
+    @OptIn(FlowPreview::class)
     override fun onReceive(context: Context, intent: Intent) {
         val application = context.applicationContext as JBeaconApplication
         val scanner = application.scanner
         val beaconManager = application.beaconManager
+        val notificationManager = application.notificationManager
 
         scanner.connectBackground()
 
@@ -38,17 +38,14 @@ class BackgroundScanBroadcastReceiver : BroadcastReceiver() {
                 // TODO: subscribe to new stream and send any push notifications
                 Log.d("BackgroundBR", "scan: $intent")
 
-//                runBlocking {
-//                    beaconManager.beaconLost()
-//                        .timeout(3.seconds)
-//                        .onEach {
-//                            // send notification
-//                        }.collect()
-//                }
-            }
-            BluetoothAdapter.ACTION_STATE_CHANGED -> {
-                // TODO: if bluetooth is disabled, pop a notification to enable it
-                Log.d("BackgroundBR", "bt state changed: $intent")
+                // Show notifications if beacons are no longer in range
+                // timeout keeps the broadcast receiver from running for too long in the background
+                runBlocking {
+                    beaconManager.beaconLost()
+                        .timeout(1.seconds)
+                        .onEach { notificationManager.showBeaconLost(it) }
+                        .collect()
+                }
             }
         }
     }

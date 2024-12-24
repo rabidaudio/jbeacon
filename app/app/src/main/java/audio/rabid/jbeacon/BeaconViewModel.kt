@@ -16,11 +16,11 @@ import kotlinx.coroutines.flow.shareIn
 class BeaconViewModel(application: Application) : AndroidViewModel(application) {
 
     sealed class State {
-        object BeaconList : State()
-        object AddingBeacon : State()
+        data object BeaconList : State()
+        data object AddingBeacon : State()
         sealed class ErrorState : State() {
-            object NoPermissions : ErrorState()
-            object BluetoothDisabled : ErrorState()
+            data object NoPermissions : ErrorState()
+            data object BluetoothDisabled : ErrorState()
             data class OtherError(val message: String) : ErrorState()
         }
     }
@@ -31,11 +31,16 @@ class BeaconViewModel(application: Application) : AndroidViewModel(application) 
     private val beaconManager
         get() = getApplication<JBeaconApplication>().beaconManager
 
+    private val notificationManager
+        get() = getApplication<JBeaconApplication>().notificationManager
+
     private val _uiState = MutableStateFlow<State>(State.BeaconList)
     val uiState = _uiState.asStateFlow()
 
     val beaconState = beaconManager.knownDeviceStatuses()
         .shareIn(viewModelScope, replay = 1, started = SharingStarted.Eagerly)
+
+    val permissions = scanner.permissions + notificationManager.permissions
 
     val inRangeNewDevices = beaconManager.inRangeNewDevices()
         .onEach { Log.d("vm", "in range set: $it") }
@@ -63,11 +68,13 @@ class BeaconViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun addBeacon(name: String, advertisement: Scanner.Advertisement) {
-        beaconManager.addBeacon(Beacon(
-            name = name,
-            macAddress = advertisement.address,
-            lastSeen = advertisement.lastAdvertisement
-        ))
+        beaconManager.addBeacon(
+            Beacon(
+                name = name,
+                macAddress = advertisement.address,
+                lastSeen = advertisement.lastAdvertisement
+            )
+        )
         back()
     }
 
@@ -82,7 +89,8 @@ class BeaconViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun startUp() {
-        val hasPermissions =  scanner.hasPermissions()
+        notificationManager.registerChannels()
+        val hasPermissions = permissions.hasPermissions()
         if (!hasPermissions) {
             _uiState.value = State.ErrorState.NoPermissions
         } else if (!scanner.bluetoothEnabled()) {

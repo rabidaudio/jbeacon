@@ -74,9 +74,11 @@ fun BeaconView(
 
 private fun BeaconStatus.relativeLastSeen(): CharSequence {
     return if (lastSeen == Instant.EPOCH) "never"
-    else if ((System.currentTimeMillis()-lastSeen.toEpochMilli()) < 1000) "now"
-    else DateUtils.getRelativeTimeSpanString(lastSeen.toEpochMilli(),
-        System.currentTimeMillis(), DateUtils.SECOND_IN_MILLIS)
+    else if ((System.currentTimeMillis() - lastSeen.toEpochMilli()) < 1000) "now"
+    else DateUtils.getRelativeTimeSpanString(
+        lastSeen.toEpochMilli(),
+        System.currentTimeMillis(), DateUtils.SECOND_IN_MILLIS
+    )
 }
 
 @Preview(showBackground = true, widthDp = 320, heightDp = 570)

@@ -27,6 +27,9 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <application
         android:name=".JBeaconApplication"
         android:allowBackup="true"
@@ -49,13 +52,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-œ
+
         <receiver android:name=".BackgroundScanBroadcastReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="audio.rabid.jbeacon.BLUETOOTH_ADVERTISEMENTS" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
             </intent-filter>
         </receiver>
     </application>

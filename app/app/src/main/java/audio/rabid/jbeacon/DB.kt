@@ -24,7 +24,9 @@ class DB(application: JBeaconApplication) {
 
     fun setDevices(devices: List<Beacon>) {
         synchronized(this) {
-            sharedPrefs.edit().putStringSet(DEVICES_KEY, devices.map(Beacon::toJson).toSet()).apply()
+            sharedPrefs.edit()
+                .putStringSet(DEVICES_KEY, devices.map(Beacon::toJson).toSet())
+                .apply()
         }
     }
 
@@ -37,8 +39,9 @@ class DB(application: JBeaconApplication) {
 
     fun setInRange(inRange: DeviceSet) {
         synchronized(this) {
+            val set = inRange.values.map(Scanner.Advertisement::toJson).toSet()
             sharedPrefs.edit()
-                .putStringSet(ADVERTISEMENTS_KEY, inRange.values.map(Scanner.Advertisement::toJson).toSet())
+                .putStringSet(ADVERTISEMENTS_KEY, set)
                 .apply()
         }
     }

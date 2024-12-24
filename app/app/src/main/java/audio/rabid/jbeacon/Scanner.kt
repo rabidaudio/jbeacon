@@ -7,14 +7,11 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
-import android.bluetooth.le.ScanSettings.AUTO_BATCH_MIN_REPORT_DELAY_MILLIS
 import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.ParcelUuid
 import android.os.SystemClock
 import android.util.Log
-import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -27,7 +24,6 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.time.Instant
 import java.util.UUID
-import kotlin.math.max
 
 typealias MacAddress = String
 
@@ -77,7 +73,7 @@ class Scanner(private val applicationContext: Context) {
 
     companion object {
         @SuppressLint("ObsoleteSdkInt")
-        val requiredPermissions = buildList {
+        private val requiredPermissions = buildSet {
             if (Build.VERSION.SDK_INT < 31) add(Manifest.permission.BLUETOOTH)
             if (Build.VERSION.SDK_INT >= 31) add(Manifest.permission.BLUETOOTH_SCAN)
             // Provides UUID and mac address access
@@ -106,21 +102,13 @@ class Scanner(private val applicationContext: Context) {
     private val startTime = Instant.now()
     private val bootTimeNanos = SystemClock.elapsedRealtimeNanos()
 
-    fun hasPermissions(): Boolean {
-        for (permission in requiredPermissions) {
-            when (ContextCompat.checkSelfPermission(applicationContext, permission)) {
-                PackageManager.PERMISSION_GRANTED -> continue
-                PackageManager.PERMISSION_DENIED -> return false
-            }
-        }
-        return true
-    }
+    val permissions = PermissionGranter(applicationContext, requiredPermissions)
 
     fun bluetoothEnabled(): Boolean = manager.adapter.isEnabled
 
     fun connectBackground() {
         synchronized(this) {
-            if (!hasPermissions()) {
+            if (!permissions.hasPermissions()) {
                 state = State.ERROR_NO_PERMISSIONS
                 // TODO: pop notif
                 return
@@ -148,7 +136,7 @@ class Scanner(private val applicationContext: Context) {
         synchronized(this) {
             if (state == State.SCANNING_FOREGROUND) return
 
-            if (!hasPermissions()) {
+            if (!permissions.hasPermissions()) {
                 state = State.ERROR_NO_PERMISSIONS
                 return
             }

@@ -84,9 +84,11 @@ fun AddBeaconView(
             }
         )
 
-        LinearProgressIndicator(modifier = Modifier
-            .height(4.dp)
-            .fillMaxWidth())
+        LinearProgressIndicator(
+            modifier = Modifier
+                .height(4.dp)
+                .fillMaxWidth()
+        )
 
         if (showingDialog) {
             BasicAlertDialog(
