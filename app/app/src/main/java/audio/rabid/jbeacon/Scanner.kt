@@ -14,20 +14,23 @@ import android.os.SystemClock
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.buffer
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.json.JSONObject
 import java.time.Instant
 import java.util.UUID
+import kotlin.time.Duration.Companion.seconds
 
 typealias MacAddress = String
 
-class Scanner(private val applicationContext: Context) {
+class Scanner(private val applicationContext: Context, private val notificationManager: NotificationManager) {
 
     data class Advertisement(
         val address: MacAddress,
@@ -83,12 +86,12 @@ class Scanner(private val applicationContext: Context) {
 
         private val SERVICE_UUID = UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb")
 
-        val REPORT_FREQUENCY_BACKGROUND = 30 * 1000L
+        const val REPORT_FREQUENCY_BACKGROUND = 30 * 1000L
     }
 
     private val manager = applicationContext.getSystemService(BluetoothManager::class.java)
 
-    private val coroutineContext = CoroutineScope(Dispatchers.IO)
+    val coroutineContext = CoroutineScope(Dispatchers.IO)
 
     var state = State.STARTING_UP
         private set
@@ -115,7 +118,7 @@ class Scanner(private val applicationContext: Context) {
             }
             if (!bluetoothEnabled()) {
                 state = State.ERROR_BT_DISABLED
-                // TODO: pop notif
+                notificationManager.requestBluetoothEnable()
                 return
             }
             state = State.SCANNING_BACKGROUND
@@ -219,7 +222,8 @@ class Scanner(private val applicationContext: Context) {
     }
 
     private val backgroundScanPendingIntent by lazy {
-        BackgroundScanBroadcastReceiver.getScanPendingIntent(applicationContext)
+//        BackgroundScanBroadcastReceiver.getScanPendingIntent(applicationContext)
+        BeaconService.getScanPendingIntent(applicationContext)
     }
 
     @SuppressLint("MissingPermission")
@@ -234,6 +238,14 @@ class Scanner(private val applicationContext: Context) {
             .build()
         val errorCode = manager.adapter.bluetoothLeScanner.startScan(deviceFilters, settings, backgroundScanPendingIntent)
         if (errorCode != 0) Log.e("Scanner", "scan error: $errorCode")
+    }
+
+    fun emitBackgroundAdvertisements(scanResults: List<ScanResult>) {
+        coroutineContext.launch {
+            for (result in scanResults) {
+                _advertisements.emit(result.toInRange())
+            }
+        }
     }
 
     @SuppressLint("MissingPermission")

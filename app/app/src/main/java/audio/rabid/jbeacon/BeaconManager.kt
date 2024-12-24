@@ -7,7 +7,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.runningFold
@@ -84,7 +83,9 @@ class BeaconManager(
             }
         }.onEach { statuses ->
             // update last-seen
-            db.setDevices(statuses.map { (beacon, status) -> beacon.copy(lastSeen = status.lastSeen) })
+            db.setDevices(statuses.map { (beacon, status) ->
+                beacon.copy(lastSeen = status.lastSeen)
+            })
         }.onStart {
             // start with an unknown state until the first advertisement comes in
             beacons.value.associateWith { BeaconStatus.Unknown(it.lastSeen) }
@@ -95,26 +96,27 @@ class BeaconManager(
      * Triggered when a beacon is no longer detected
      */
     fun beaconLost(): Flow<Beacon> {
-        return knownDeviceStatuses().compareToPrevious { oldInRange, newInRange ->
-            buildSet {
-                for ((beacon, status) in newInRange) {
-                    when (status) {
-                        is BeaconStatus.Unknown -> continue // still pending
-                        is BeaconStatus.InRange -> continue // still in range
-                        is BeaconStatus.OutOfRange -> when (oldInRange[beacon]) {
-                            is BeaconStatus.InRange -> add(beacon)
-                            is BeaconStatus.OutOfRange,
-                            is BeaconStatus.Unknown -> continue // was already out of range
-                            null -> continue // new device
+        return knownDeviceStatuses()
+            .compareToPrevious { oldInRange, newInRange ->
+                buildSet {
+                    for ((beacon, status) in newInRange) {
+                        when (status) {
+                            is BeaconStatus.Unknown -> continue // still pending
+                            is BeaconStatus.InRange -> continue // still in range
+                            is BeaconStatus.OutOfRange -> when (oldInRange[beacon]) {
+                                is BeaconStatus.InRange -> add(beacon)
+                                is BeaconStatus.OutOfRange,
+                                is BeaconStatus.Unknown -> continue // was already out of range
+                                null -> continue // new device
+                            }
                         }
                     }
                 }
+            }.transform { lostBeacons ->
+                for (lost in lostBeacons) {
+                    emit(lost)
+                }
             }
-        }.transform { lostBeacons ->
-            for (lost in lostBeacons) {
-                emit(lost)
-            }
-        }
     }
 
     fun addBeacon(beacon: Beacon) {
@@ -156,7 +158,11 @@ class BeaconManager(
     private fun Advertisement.isExpired(): Boolean = timeSinceMillis() >= ADVERTISEMENT_TIMEOUT
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 private fun <T, V> Flow<T>.compareToPrevious(block: (prev: T, current: T) -> V): Flow<V> =
     runningFold(emptyList<T>()) { acc, value ->
+        Log.d("BeaconManager", "running fold: $acc $value")
         if (acc.isEmpty()) listOf(value) else listOf(acc.last(), value)
-    }.map { list -> block(list[0], list[1]) }
+    }.transformLatest { list ->
+        if (list.size == 2) emit(block(list[0], list[1]))
+    }
