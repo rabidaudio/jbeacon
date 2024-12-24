@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationDisabled
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -20,10 +21,7 @@ import audio.rabid.jbeacon.Beacon
 import audio.rabid.jbeacon.BeaconManager.BeaconStatus
 import audio.rabid.jbeacon.ui.theme.JBeaconTheme
 import audio.rabid.jbeacon.ui.theme.Typography
-import audio.rabid.jbeacon.vm.BeaconViewModel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.transform
 import java.time.Instant
@@ -48,7 +46,9 @@ fun BeaconView(
     ) {
         Text(beacon.name, Modifier.padding(8.dp), style = Typography.bodyLarge)
 
+
         val (icon, text) = when (status) {
+            is BeaconStatus.Unknown -> Pair(Icons.Default.QuestionMark, "Unknown")
             is BeaconStatus.InRange -> Pair(Icons.Default.MyLocation, "In Range")
             is BeaconStatus.OutOfRange -> Pair(
                 Icons.Default.LocationDisabled, "Out Of Range"

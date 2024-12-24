@@ -7,6 +7,7 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
+import android.bluetooth.le.ScanSettings.AUTO_BATCH_MIN_REPORT_DELAY_MILLIS
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -18,13 +19,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.buffer
+import kotlinx.coroutines.launch
+import org.json.JSONException
+import org.json.JSONObject
 import java.time.Instant
 import java.util.UUID
+import kotlin.math.max
 
 typealias MacAddress = String
 
@@ -35,7 +38,29 @@ class Scanner(private val applicationContext: Context) {
         val rssi: Float, // in dBm, down to -127
         val lastAdvertisement: Instant,
         val name: String?
-    )
+    ) {
+        companion object {
+            @Throws(JSONException::class)
+            fun fromJson(json: String): Advertisement {
+                val obj = JSONObject(json)
+                return Advertisement(
+                    address = obj.getString("address"),
+                    rssi = obj.getDouble("rssi").toFloat(),
+                    lastAdvertisement = Instant.ofEpochMilli(obj.getLong("last_advertisement")),
+                    name = obj.optString("name")
+                )
+            }
+        }
+
+        fun toJson(): String {
+            return JSONObject().apply {
+                put("address", address)
+                put("rssi", rssi)
+                put("last_advertisement", lastAdvertisement.toEpochMilli())
+                put("name", name)
+            }.toString()
+        }
+    }
 
     enum class State {
         STARTING_UP, SCANNING_BACKGROUND, SCANNING_FOREGROUND,
@@ -187,21 +212,17 @@ class Scanner(private val applicationContext: Context) {
         }
     }
 
+    private val deviceFilters = listOf(ScanFilter.Builder()
+        .setServiceUuid(ParcelUuid(SERVICE_UUID))
+        .build())
+
     @SuppressLint("MissingPermission")
     private fun scanForeground() {
-        val filter = ScanFilter.Builder()
-            .setServiceUuid(ParcelUuid(SERVICE_UUID))
+        Log.d("Scanner", "Starting Foreground Scan")
+        val settings = ScanSettings.Builder()
+            .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
             .build()
-//        val settings = ScanSettings.Builder()
-//                .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
-////                .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
-//            .setReportDelay(REPORT_FREQUENCY_BACKGROUND)
-//            // TODO: back-support older sdk versions (e.g. 26)
-//            .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES_AUTO_BATCH)
-//            .build()
-        val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_BALANCED).build()
-
-        manager.adapter.bluetoothLeScanner.startScan(listOf(filter), settings, foregroundScanCallback)
+        manager.adapter.bluetoothLeScanner.startScan(deviceFilters, settings, foregroundScanCallback)
     }
 
     @SuppressLint("MissingPermission")
@@ -209,12 +230,27 @@ class Scanner(private val applicationContext: Context) {
         manager.adapter.bluetoothLeScanner.stopScan(foregroundScanCallback)
     }
 
-    private fun scanBackground() {
-        TODO()
+    private val backgroundScanPendingIntent by lazy {
+        BackgroundScanBroadcastReceiver.getScanPendingIntent(applicationContext)
     }
 
+    @SuppressLint("MissingPermission")
+    private fun scanBackground() {
+        Log.d("Scanner", "Starting Background Scan")
+        val settings = ScanSettings.Builder()
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
+            .setReportDelay(REPORT_FREQUENCY_BACKGROUND)
+            .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
+//            .setReportDelay(ScanSettings.AUTO_BATCH_MIN_REPORT_DELAY_MILLIS)
+//            .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES_AUTO_BATCH)
+            .build()
+        val errorCode = manager.adapter.bluetoothLeScanner.startScan(deviceFilters, settings, backgroundScanPendingIntent)
+        if (errorCode != 0) Log.e("Scanner", "scan error: $errorCode")
+    }
+
+    @SuppressLint("MissingPermission")
     private fun stopBackground() {
-        TODO()
+        manager.adapter.bluetoothLeScanner.stopScan(backgroundScanPendingIntent)
     }
 
     private fun ScanResult.getAdvertisementTime(): Instant =

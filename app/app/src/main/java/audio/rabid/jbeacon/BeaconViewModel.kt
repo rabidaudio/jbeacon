@@ -1,15 +1,10 @@
-package audio.rabid.jbeacon.vm
+package audio.rabid.jbeacon
 
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import audio.rabid.jbeacon.Beacon
-import audio.rabid.jbeacon.BeaconStatuses
-import audio.rabid.jbeacon.JBeaconApplication
-import audio.rabid.jbeacon.Scanner
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.onCompletion
@@ -48,10 +43,6 @@ class BeaconViewModel(application: Application) : AndroidViewModel(application) 
         .onCompletion { Log.d("vm", "in range completed") }
         .shareIn(viewModelScope, replay = 1, started = SharingStarted.Lazily)
         .onSubscription { Log.d("vm", "in range subscribed") }
-
-    init {
-        startUp()
-    }
 
     fun permissionsGranted() {
         if (_uiState.value !is State.ErrorState) return
@@ -101,6 +92,14 @@ class BeaconViewModel(application: Application) : AndroidViewModel(application) 
             _uiState.value = State.BeaconList
         }
         // TODO: find a way to propagate scan errors
+    }
+
+    fun onStart() {
+        startUp()
+    }
+
+    fun onStop() {
+        scanner.disconnectForeground()
     }
 
     override fun onCleared() {

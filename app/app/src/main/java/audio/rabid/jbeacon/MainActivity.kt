@@ -14,28 +14,21 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import audio.rabid.jbeacon.ui.AddBeaconView
 import audio.rabid.jbeacon.ui.BeaconsListView
 import audio.rabid.jbeacon.ui.ErrorView
 import audio.rabid.jbeacon.ui.theme.JBeaconTheme
-import audio.rabid.jbeacon.vm.BeaconViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -69,6 +62,18 @@ class MainActivity : ComponentActivity() {
         fun enableBluetooth() {
             enableBluetoothLauncher.launch(Unit)
         }
+
+        lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onStart(owner: LifecycleOwner) {
+                super.onStart(owner)
+                vm.onStart()
+            }
+
+            override fun onStop(owner: LifecycleOwner) {
+                super.onStop(owner)
+                vm.onStop()
+            }
+        })
 
         setContent {
             val state = vm.uiState.collectAsStateWithLifecycle()

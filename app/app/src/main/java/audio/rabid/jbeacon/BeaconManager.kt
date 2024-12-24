@@ -9,12 +9,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.transformLatest
 import java.time.Instant
 
-private typealias DeviceSet = Map<MacAddress, Advertisement>
+typealias DeviceSet = Map<MacAddress, Advertisement>
 typealias BeaconStatuses = Map<Beacon, BeaconManager.BeaconStatus>
 
 /**
@@ -30,6 +31,7 @@ class BeaconManager(
     sealed class BeaconStatus {
         abstract val lastSeen: Instant
 
+        data class Unknown(override val lastSeen: Instant) : BeaconStatus()
         data class InRange(val rssi: Float, override val lastSeen: Instant) : BeaconStatus()
         data class OutOfRange(override val lastSeen: Instant) : BeaconStatus()
     }
@@ -45,16 +47,16 @@ class BeaconManager(
     }
 
     private fun inRangeDevices(): Flow<DeviceSet> {
-        // TODO: may need to serialize in range for background wakeups
-
         return scanner.advertisements
-            .onEach { Log.i("JB-BeaconManager", "new advertisement: $it") }
             .accumulateByAddress()
-            .retriggerOnNextExpiry()
-            .removeOldDevices()
-            .onEach { Log.i("JB-BeaconManager", "in range devices: $it") }
-
-        // TODO: periodically save last seen status
+            // emit the cached value from the last time we were scanning
+            .onStart { emit(db.getInRange()) }
+            .expireOldDevices()
+            // Save results to cache
+            .onEach {
+                Log.d("SCANNER", "in range device count: ${it.size}")
+            }
+            .onEach { db.setInRange(it) }
     }
 
     /**
@@ -64,7 +66,7 @@ class BeaconManager(
         return inRangeDevices().combine(beacons) { inRange, knownBeacons ->
             val knownAddrs = knownBeacons.map { it.macAddress }.toSet()
             inRange.filterKeys { addr -> !knownAddrs.contains(addr) }.values.toSet()
-        }.onEach { Log.i("JB-BeaconManager", "in range NEW devices: $it") }
+        }
     }
 
     /**
@@ -81,6 +83,12 @@ class BeaconManager(
                     )
                 }
             }
+        }.onEach { statuses ->
+            // update last-seen
+            db.setDevices(statuses.map { (beacon, status) -> beacon.copy(lastSeen = status.lastSeen) })
+        }.onStart {
+            // start with an unknown state until the first advertisement comes in
+            beacons.value.associateWith { BeaconStatus.Unknown(it.lastSeen) }
         }
     }
 
@@ -92,10 +100,12 @@ class BeaconManager(
             buildSet {
                 for ((beacon, status) in newInRange) {
                     when (status) {
+                        is BeaconStatus.Unknown -> continue // still pending
                         is BeaconStatus.InRange -> continue // still in range
                         is BeaconStatus.OutOfRange -> when (oldInRange[beacon]) {
                             is BeaconStatus.InRange -> add(beacon)
-                            is BeaconStatus.OutOfRange -> continue // already out of range
+                            is BeaconStatus.OutOfRange,
+                            is BeaconStatus.Unknown -> continue // was already out of range
                             null -> continue // new device
                         }
                     }
@@ -125,18 +135,19 @@ class BeaconManager(
             accumulator.plus(Pair(value.address, value))
         }
 
-    private fun Flow<DeviceSet>.retriggerOnNextExpiry(): Flow<DeviceSet> =
-        transformLatest { inRange ->
-            emit(inRange)
-            if (inRange.isEmpty()) return@transformLatest
+    private fun Flow<DeviceSet>.expireOldDevices(): Flow<DeviceSet> = transformLatest { inRange ->
+        var inRangeMutable = inRange
+        emit(inRangeMutable)
 
-            val nextExpiryMillis = inRange.values.minOf { it.expiresInMillis() }
-            delay(nextExpiryMillis)
-            emit(inRange)
+        while (inRangeMutable.isNotEmpty()) {
+            val nextExpiryMillis = inRangeMutable.values.minOf { it.expiresInMillis() }
+            if (nextExpiryMillis > 0) {
+                delay(nextExpiryMillis)
+            }
+            inRangeMutable = inRangeMutable.filterValues { a -> !a.isExpired() }
+            emit(inRangeMutable)
         }
-
-    private fun Flow<DeviceSet>.removeOldDevices(): Flow<DeviceSet> =
-        map { it.filterValues { a -> !a.isExpired() } }
+    }
 
     private fun Advertisement.timeSinceMillis(): Long =
         Instant.now().toEpochMilli() - lastAdvertisement.toEpochMilli()
