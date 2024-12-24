@@ -7,6 +7,7 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
+import android.companion.BluetoothDeviceFilter
 import android.content.Context
 import android.os.Build
 import android.os.ParcelUuid
@@ -30,7 +31,10 @@ import kotlin.time.Duration.Companion.seconds
 
 typealias MacAddress = String
 
-class Scanner(private val applicationContext: Context, private val notificationManager: NotificationManager) {
+class Scanner(
+    private val applicationContext: Context,
+    private val notificationManager: NotificationManager
+) {
 
     data class Advertisement(
         val address: MacAddress,

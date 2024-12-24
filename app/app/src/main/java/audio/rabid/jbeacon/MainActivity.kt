@@ -2,13 +2,24 @@ package audio.rabid.jbeacon
 
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.le.ScanResult
+import android.companion.AssociationInfo
+import android.companion.AssociationRequest
+import android.companion.CompanionDeviceManager
 import android.content.Context
 import android.content.Intent
+import android.content.IntentSender
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.ActivityResultCallback
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContract
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
@@ -35,6 +47,7 @@ import audio.rabid.jbeacon.ui.ErrorView
 import audio.rabid.jbeacon.ui.theme.JBeaconTheme
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import java.util.concurrent.Executor
 import kotlin.coroutines.coroutineContext
 
 class MainActivity : ComponentActivity() {
@@ -66,10 +79,13 @@ class MainActivity : ComponentActivity() {
             enableBluetoothLauncher.launch(Unit)
         }
 
+        val companionDeviceVM = androidViewModel<CompanionDeviceViewModel>()
+
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
                 super.onStart(owner)
-                vm.onStart()
+//                vm.onStart()
+                companionDeviceVM.start()
             }
 
             override fun onStop(owner: LifecycleOwner) {
@@ -78,8 +94,24 @@ class MainActivity : ComponentActivity() {
             }
         })
 
+        val selectDeviceLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()
+        ) { result ->
+            if (result.resultCode != RESULT_OK) {
+                companionDeviceVM.onDeviceSelectCanceled()
+            }
+        }
+
+
         setContent {
             val state = vm.uiState.collectAsStateWithLifecycle()
+
+            val intentSender = companionDeviceVM.associationIntentSender.collectAsStateWithLifecycle()
+            intentSender.value?.let { intentSender ->
+                LaunchedEffect("select device") {
+                    selectDeviceLauncher.launch(IntentSenderRequest.Builder(intentSender).build())
+                }
+            }
+
             JBeaconTheme {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
