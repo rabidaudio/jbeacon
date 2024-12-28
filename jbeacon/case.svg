@@ -2,9 +2,9 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="210mm"
-   height="297mm"
-   viewBox="0 0 210 297"
+   width="25.75mm"
+   height="35mm"
+   viewBox="0 0 25.75 35"
    version="1.1"
    id="svg5"
    inkscape:version="1.1.2 (b8e25be8, 2022-02-05)"
@@ -24,21 +24,25 @@
      inkscape:document-units="mm"
      showgrid="false"
      inkscape:zoom="3.9167199"
-     inkscape:cx="97.402931"
-     inkscape:cy="46.850427"
-     inkscape:window-width="1512"
-     inkscape:window-height="839"
-     inkscape:window-x="0"
-     inkscape:window-y="38"
-     inkscape:window-maximized="1"
-     inkscape:current-layer="layer3" />
+     inkscape:cx="70.33947"
+     inkscape:cy="87.573278"
+     inkscape:window-width="1920"
+     inkscape:window-height="1058"
+     inkscape:window-x="37"
+     inkscape:window-y="96"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="text1578"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0" />
   <defs
      id="defs2" />
   <g
      inkscape:groupmode="layer"
      id="layer2"
-     inkscape:label="Layer 2"
-     style="display:inline"
+     inkscape:label="PCB"
+     style="display:none"
      sodipodi:insensitive="true">
     <g
        id="g1073"
@@ -179,7 +183,7 @@
     </g>
   </g>
   <g
-     inkscape:label="Layer 1"
+     inkscape:label="Components"
      inkscape:groupmode="layer"
      id="layer1"
      style="display:inline"
@@ -203,13 +207,6 @@
          ry="0"
          rx="0" />
     </g>
-    <rect
-       style="fill:#000000;fill-opacity:0.470468;fill-rule:evenodd;stroke-width:1;stroke-linecap:square;stroke-linejoin:round;paint-order:markers fill stroke"
-       id="rect868"
-       width="27"
-       height="27"
-       x="71.725395"
-       y="24.588915" />
     <circle
        style="fill:#000000;fill-opacity:0.356195;fill-rule:evenodd;stroke-width:0.666667;stroke-linecap:square;stroke-linejoin:round;paint-order:markers fill stroke"
        id="path1657"
@@ -220,8 +217,9 @@
   <g
      inkscape:groupmode="layer"
      id="layer3"
-     inkscape:label="Layer 3"
-     style="display:inline">
+     inkscape:label="Bounds"
+     style="display:inline"
+     sodipodi:insensitive="true">
     <rect
        style="fill:#00e800;fill-opacity:0.470468;fill-rule:evenodd;stroke-width:1.11189;stroke-linecap:square;stroke-linejoin:round;paint-order:markers fill stroke"
        id="rect868-6"
@@ -235,5 +233,25 @@
        style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
        id="g926"
        transform="translate(0,-0.0835)" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer4"
+     inkscape:label="Text"
+     style="display:inline">
+    <g
+       aria-label="JB"
+       transform="scale(1.0003092,0.9996909)"
+       id="text1578"
+       style="font-size:26.3559px;line-height:1.25;letter-spacing:-5.76534px;display:inline;stroke-width:0.274539">
+      <path
+         d="m 11.011476,19.084724 q 0,2.496603 -1.3126478,3.834989 -1.2997783,1.338386 -3.8221203,1.338386 -2.2006146,0 -4.0022875,-0.926575 l 0.6305855,-1.685851 q 1.5314219,0.759276 3.371702,0.759276 1.5957674,0 2.3035675,-0.836491 0.7206691,-0.84936 0.7206691,-2.638163 V 5.7523447 h 2.1105315 z"
+         style="font-family:'Andale Mono';-inkscape-font-specification:'Andale Mono'"
+         id="path16516" />
+      <path
+         d="m 19.994115,13.949956 q 1.814542,0.42468 2.844069,1.647244 1.029527,1.222564 1.029527,2.908415 0,2.470865 -1.801672,3.937942 -1.788804,1.467076 -4.311146,1.467076 H 12.594387 V 5.7523447 h 5.031815 q 2.625295,0 4.10524,1.1582182 1.479946,1.1453492 1.479946,3.2430111 0,1.286909 -0.862229,2.290698 -0.849361,1.00379 -2.355044,1.454208 z m -5.289197,-0.978051 h 2.470866 q 3.873596,0 3.873596,-2.766855 0,-1.2611706 -0.952313,-1.9303633 -0.952312,-0.6820619 -2.792592,-0.6820619 h -2.599557 z m 0,9.098448 h 2.393651 q 2.097662,0 3.320226,-0.952313 1.235433,-0.952313 1.235433,-2.612425 0,-1.763066 -1.209695,-2.728248 -1.209695,-0.965182 -3.500393,-0.965182 h -2.239222 z"
+         style="font-family:'Andale Mono';-inkscape-font-specification:'Andale Mono'"
+         id="path16518" />
+    </g>
   </g>
 </svg>
