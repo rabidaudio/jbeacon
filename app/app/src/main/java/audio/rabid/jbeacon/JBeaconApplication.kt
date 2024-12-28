@@ -10,9 +10,9 @@ class JBeaconApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        scanner = Scanner(this)
         db = DB(this)
         notificationManager = NotificationManager(this)
-        scanner = Scanner(this, notificationManager)
         beaconManager = BeaconManager(scanner, db)
     }
 }
