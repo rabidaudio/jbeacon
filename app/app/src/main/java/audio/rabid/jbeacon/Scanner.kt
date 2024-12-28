@@ -32,7 +32,7 @@ class Scanner(private val applicationContext: Context) {
     data class Advertisement(
         val address: MacAddress,
         val rssi: Float, // in dBm, down to -127
-        val lastAdvertisement: Instant,
+        val advertisedAt: Instant,
         val name: String?
     ) {
         companion object {
@@ -42,7 +42,7 @@ class Scanner(private val applicationContext: Context) {
                 return Advertisement(
                     address = obj.getString("address"),
                     rssi = obj.getDouble("rssi").toFloat(),
-                    lastAdvertisement = Instant.ofEpochMilli(obj.getLong("last_advertisement")),
+                    advertisedAt = Instant.ofEpochMilli(obj.getLong("advertised_at")),
                     name = obj.optString("name")
                 )
             }
@@ -52,7 +52,7 @@ class Scanner(private val applicationContext: Context) {
             return JSONObject().apply {
                 put("address", address)
                 put("rssi", rssi)
-                put("last_advertisement", lastAdvertisement.toEpochMilli())
+                put("advertised_at", advertisedAt.toEpochMilli())
                 put("name", name)
             }.toString()
         }
@@ -81,22 +81,24 @@ class Scanner(private val applicationContext: Context) {
             add(Manifest.permission.ACCESS_FINE_LOCATION)
         }
 
+        // TODO: this is the wrong UUID
         private val SERVICE_UUID = UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb")
 
-        val REPORT_FREQUENCY_BACKGROUND = 30 * 1000L
+        const val REPORT_FREQUENCY_BACKGROUND = 30 * 1000L
     }
 
     private val manager = applicationContext.getSystemService(BluetoothManager::class.java)
 
-    private val coroutineContext = CoroutineScope(Dispatchers.IO)
+    val coroutineContext = CoroutineScope(Dispatchers.IO)
 
     var state = State.STARTING_UP
         private set
 
     private val _advertisements = MutableSharedFlow<Advertisement>()
 
-    val advertisements: Flow<Advertisement> get() = _advertisements
-        .buffer(capacity = 100, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    val advertisements: Flow<Advertisement>
+        get() = _advertisements
+            .buffer(capacity = 100, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
     // These are used to get proper timestamps from scan results
     private val startTime = Instant.now()
@@ -179,7 +181,7 @@ class Scanner(private val applicationContext: Context) {
                         "service data ${result.scanRecord?.serviceData}"
             )
             coroutineContext.launch {
-                _advertisements.emit(result.toInRange())
+                _advertisements.emit(result.toAdvertisement())
             }
         }
 
@@ -188,7 +190,7 @@ class Scanner(private val applicationContext: Context) {
             Log.d("JBEACON-BT", "onBatchScanResults: $results")
             coroutineContext.launch {
                 for (result in results) {
-                    _advertisements.emit(result.toInRange())
+                    _advertisements.emit(result.toAdvertisement())
                 }
             }
         }
@@ -200,9 +202,11 @@ class Scanner(private val applicationContext: Context) {
         }
     }
 
-    private val deviceFilters = listOf(ScanFilter.Builder()
-        .setServiceUuid(ParcelUuid(SERVICE_UUID))
-        .build())
+    private val deviceFilters = listOf(
+        ScanFilter.Builder()
+            .setServiceUuid(ParcelUuid(SERVICE_UUID))
+            .build()
+    )
 
     @SuppressLint("MissingPermission")
     private fun scanForeground() {
@@ -210,7 +214,11 @@ class Scanner(private val applicationContext: Context) {
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
             .build()
-        manager.adapter.bluetoothLeScanner.startScan(deviceFilters, settings, foregroundScanCallback)
+        manager.adapter.bluetoothLeScanner.startScan(
+            deviceFilters,
+            settings,
+            foregroundScanCallback
+        )
     }
 
     @SuppressLint("MissingPermission")
@@ -232,8 +240,20 @@ class Scanner(private val applicationContext: Context) {
             .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
             .build()
 
-        val errorCode = manager.adapter.bluetoothLeScanner.startScan(deviceFilters, settings, backgroundScanPendingIntent)
+        val errorCode = manager.adapter.bluetoothLeScanner.startScan(
+            deviceFilters,
+            settings,
+            backgroundScanPendingIntent
+        )
         if (errorCode != 0) Log.e("Scanner", "scan error: $errorCode")
+    }
+
+    fun postBackgroundAdvertisements(scanResults: ArrayList<ScanResult>) {
+        coroutineContext.launch {
+            for (scanResult in scanResults) {
+                _advertisements.emit(scanResult.toAdvertisement())
+            }
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -245,10 +265,10 @@ class Scanner(private val applicationContext: Context) {
         startTime.plusNanos(timestampNanos - bootTimeNanos)
 
     @SuppressLint("MissingPermission")
-    private fun ScanResult.toInRange() = Advertisement(
+    private fun ScanResult.toAdvertisement() = Advertisement(
         address = device.address,
         rssi = rssi.toFloat(),
-        lastAdvertisement = getAdvertisementTime(),
+        advertisedAt = getAdvertisementTime(),
         name = device.name
     )
 }

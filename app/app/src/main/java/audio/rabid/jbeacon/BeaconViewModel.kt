@@ -72,7 +72,7 @@ class BeaconViewModel(application: Application) : AndroidViewModel(application) 
             Beacon(
                 name = name,
                 macAddress = advertisement.address,
-                lastSeen = advertisement.lastAdvertisement
+                lastSeen = advertisement.advertisedAt
             )
         )
         back()

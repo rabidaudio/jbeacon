@@ -144,7 +144,7 @@ fun AddBeaconView(
                         beacon = Beacon(
                             name = advertisement.name ?: "<No name set> ${advertisement.address}",
                             macAddress = advertisement.address,
-                            lastSeen = advertisement.lastAdvertisement
+                            lastSeen = advertisement.advertisedAt
                         ),
                         modifier = Modifier.clickable {
                             selectedAdvertisement = advertisement
@@ -152,7 +152,7 @@ fun AddBeaconView(
                         },
                         status = BeaconManager.BeaconStatus.InRange(
                             rssi = advertisement.rssi,
-                            lastSeen = advertisement.lastAdvertisement
+                            lastSeen = advertisement.advertisedAt
                         )
                     )
                 }
@@ -172,13 +172,13 @@ fun AddBeaconPreview() {
                 Scanner.Advertisement(
                     address = "00:11:22:33:44:55",
                     rssi = -60f,
-                    lastAdvertisement = Instant.now().minusSeconds(1),
+                    advertisedAt = Instant.now().minusSeconds(1),
                     name = "Device 1"
                 ),
                 Scanner.Advertisement(
                     address = "AA:BB:CC:DD:EE:FF",
                     rssi = -120f,
-                    lastAdvertisement = Instant.now().minusSeconds(3),
+                    advertisedAt = Instant.now().minusSeconds(3),
                     name = null
                 ),
             )

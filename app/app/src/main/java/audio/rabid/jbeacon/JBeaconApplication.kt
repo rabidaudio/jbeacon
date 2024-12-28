@@ -13,6 +13,6 @@ class JBeaconApplication : Application() {
         scanner = Scanner(this)
         db = DB(this)
         notificationManager = NotificationManager(this)
-        beaconManager = BeaconManager(scanner, db)
+        beaconManager = BeaconManager(scanner, db, notificationManager)
     }
 }

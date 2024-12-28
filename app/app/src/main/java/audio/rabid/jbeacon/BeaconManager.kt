@@ -1,19 +1,23 @@
 package audio.rabid.jbeacon
 
+import android.bluetooth.le.ScanResult
 import android.util.Log
 import audio.rabid.jbeacon.Scanner.Advertisement
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.runningFold
+import kotlinx.coroutines.flow.timeout
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.launch
 import java.time.Instant
+import kotlin.time.Duration.Companion.seconds
 
 typealias DeviceSet = Map<MacAddress, Advertisement>
 typealias BeaconStatuses = Map<Beacon, BeaconManager.BeaconStatus>
@@ -24,7 +28,8 @@ typealias BeaconStatuses = Map<Beacon, BeaconManager.BeaconStatus>
 @OptIn(ExperimentalCoroutinesApi::class)
 class BeaconManager(
     private val scanner: Scanner,
-    private val db: DB
+    private val db: DB,
+    private val notificationManager: NotificationManager
 ) {
 
     sealed class BeaconStatus {
@@ -78,7 +83,7 @@ class BeaconManager(
                     null -> BeaconStatus.OutOfRange(beacon.lastSeen)
                     else -> BeaconStatus.InRange(
                         advertisement.rssi,
-                        advertisement.lastAdvertisement
+                        advertisement.advertisedAt
                     )
                 }
             }
@@ -117,6 +122,18 @@ class BeaconManager(
         }
     }
 
+    fun processScanResultsFromBackground(scanResults: ArrayList<ScanResult>) {
+        scanner.coroutineContext.launch {
+            // listen for beaconLost events
+            beaconLost()
+                .timeout(1.seconds)
+                .onEach { notificationManager.showBeaconLost(it) }
+                .collect()
+        }
+        // emit all results
+        scanner.postBackgroundAdvertisements(scanResults)
+    }
+
     fun addBeacon(beacon: Beacon) {
         val newSet = beacons.value.plus(beacon)
         db.setDevices(newSet.toList())
@@ -149,7 +166,7 @@ class BeaconManager(
     }
 
     private fun Advertisement.timeSinceMillis(): Long =
-        Instant.now().toEpochMilli() - lastAdvertisement.toEpochMilli()
+        Instant.now().toEpochMilli() - advertisedAt.toEpochMilli()
 
     private fun Advertisement.expiresInMillis(): Long = ADVERTISEMENT_TIMEOUT - timeSinceMillis()
 
@@ -159,4 +176,6 @@ class BeaconManager(
 private fun <T, V> Flow<T>.compareToPrevious(block: (prev: T, current: T) -> V): Flow<V> =
     runningFold(emptyList<T>()) { acc, value ->
         if (acc.isEmpty()) listOf(value) else listOf(acc.last(), value)
-    }.map { list -> block(list[0], list[1]) }
+    }.transformLatest { list ->
+        if (list.size == 2) emit(block(list[0], list[1]))
+    }
