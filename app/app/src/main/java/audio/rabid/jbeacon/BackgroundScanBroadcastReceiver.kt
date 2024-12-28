@@ -15,38 +15,46 @@ import kotlin.time.Duration.Companion.seconds
 class BackgroundScanBroadcastReceiver : BroadcastReceiver() {
 
     companion object {
-        const val REQUEST_CODE = 0xBEAC07
-        const val SCAN_ACTION = "audio.rabid.jbeacon.BLUETOOTH_ADVERTISEMENTS"
+        private const val REQUEST_CODE = 0xBEAC07
 
         fun getScanPendingIntent(context: Context) =
             PendingIntent.getBroadcast(context, REQUEST_CODE,
-                Intent(context, BackgroundScanBroadcastReceiver::class.java).setAction(SCAN_ACTION),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                Intent(context, BackgroundScanBroadcastReceiver::class.java),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
+
+        fun cancelIfScheduled(context: Context) {
+            val pendingIntent = PendingIntent.getBroadcast(context, REQUEST_CODE,
+                Intent(context, BackgroundScanBroadcastReceiver::class.java),
+                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_MUTABLE)
+            pendingIntent?.cancel()
+        }
     }
 
-    @OptIn(FlowPreview::class)
     override fun onReceive(context: Context, intent: Intent) {
         val application = context.applicationContext as JBeaconApplication
         val scanner = application.scanner
-        val beaconManager = application.beaconManager
-        val notificationManager = application.notificationManager
+//        val beaconManager = application.beaconManager
+//        val notificationManager = application.notificationManager
 
         scanner.connectBackground()
 
-        when (intent.action) {
-            SCAN_ACTION -> {
-                // TODO: subscribe to new stream and send any push notifications
-                Log.d("BackgroundBR", "scan: $intent")
+        Log.d("BackgroundBR", "scan: $intent extras: ${intent.extras?.keySet()?.joinToString(",")}")
 
-                // Show notifications if beacons are no longer in range
-                // timeout keeps the broadcast receiver from running for too long in the background
-                runBlocking {
-                    beaconManager.beaconLost()
-                        .timeout(1.seconds)
-                        .onEach { notificationManager.showBeaconLost(it) }
-                        .collect()
-                }
-            }
-        }
+//        when (intent.action) {
+//            SCAN_ACTION -> {
+//                // TODO: subscribe to new stream and send any push notifications
+//
+//
+//
+//                // Show notifications if beacons are no longer in range
+//                // timeout keeps the broadcast receiver from running for too long in the background
+//                runBlocking {
+//                    beaconManager.beaconLost()
+//                        .timeout(1.seconds)
+//                        .onEach { notificationManager.showBeaconLost(it) }
+//                        .collect()
+//                }
+//            }
+//        }
     }
 }

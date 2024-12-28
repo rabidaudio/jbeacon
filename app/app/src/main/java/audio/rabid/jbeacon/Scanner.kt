@@ -225,13 +225,13 @@ class Scanner(private val applicationContext: Context) {
     @SuppressLint("MissingPermission")
     private fun scanBackground() {
         Log.d("Scanner", "Starting Background Scan")
+        BackgroundScanBroadcastReceiver.cancelIfScheduled(applicationContext)
         val settings = ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
+            .setScanMode(ScanSettings.SCAN_MODE_BALANCED) // TODO SCAN_MODE_LOW_POWER
             .setReportDelay(REPORT_FREQUENCY_BACKGROUND)
             .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
-//            .setReportDelay(ScanSettings.AUTO_BATCH_MIN_REPORT_DELAY_MILLIS)
-//            .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES_AUTO_BATCH)
             .build()
+
         val errorCode = manager.adapter.bluetoothLeScanner.startScan(deviceFilters, settings, backgroundScanPendingIntent)
         if (errorCode != 0) Log.e("Scanner", "scan error: $errorCode")
     }
