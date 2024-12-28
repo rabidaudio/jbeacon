@@ -38,9 +38,9 @@ class NotificationManager(private val applicationContext: Context) {
 
     val permissions = PermissionGranter(
         applicationContext, setOf(
-            Manifest.permission.POST_NOTIFICATIONS
-//            Manifest.permission.FOREGROUND_SERVICE,
-//            Manifest.permission.FOREGROUND_SERVICE_SPECIAL_USE
+            Manifest.permission.POST_NOTIFICATIONS,
+            Manifest.permission.FOREGROUND_SERVICE,
+            Manifest.permission.FOREGROUND_SERVICE_SPECIAL_USE
         )
     )
 
