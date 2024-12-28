@@ -388,4 +388,15 @@
 		(thermal_bridge_angle 45)
 		(uuid "3444a5a5-53b4-4919-a0cf-46fa1d43576b")
 	)
+	(model "${KIPRJMOD}/QFN8.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
 )

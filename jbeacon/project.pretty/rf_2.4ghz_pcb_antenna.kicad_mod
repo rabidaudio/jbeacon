@@ -235,17 +235,17 @@
 			)
 		)
 	)
-	(pad "1" smd rect
+	(pad "1" connect rect
 		(at 3.05 5.45)
 		(size 0.5 0.5)
-		(layers "F.Cu" "F.Paste" "F.Mask")
+		(layers "F.Cu" "F.Mask")
 		(solder_mask_margin 0.102)
 		(uuid "3d7d8e6a-3476-48e1-9999-e4face4eed98")
 	)
-	(pad "2" smd rect
+	(pad "2" connect rect
 		(at 0.95 5.45 90)
 		(size 0.5 0.9)
-		(layers "F.Cu" "F.Paste" "F.Mask")
+		(layers "F.Cu" "F.Mask")
 		(solder_mask_margin 0.102)
 		(uuid "0118117f-7052-4ef9-8bc2-5f184a607709")
 	)

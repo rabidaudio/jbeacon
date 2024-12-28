@@ -1,4 +1,4 @@
-24363266557628508
+24365002879792754
 Audio_Module
 Reverb_BTDR-1H
 Digital Reverberation Unit, http://www.belton.co.kr/inc/downfile.php?seq=17&file=pdf (footprint from http://www.uk-electronic.de/PDF/BTDR-1.pdf)
@@ -98376,7 +98376,14 @@ BAT_BC-2003
 
 0
 3
-3
+2
+project
+OSC_XRCGB26M000F2P00R0
+
+
+0
+4
+4
 project
 QFN-8_EP_2.5x2.5_Pitch0.5mm
 

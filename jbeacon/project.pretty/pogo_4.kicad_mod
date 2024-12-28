@@ -82,24 +82,28 @@
 	(pad "1" smd circle
 		(at 0 0)
 		(size 1.8 1.8)
+		(property pad_prop_testpoint)
 		(layers "F.Cu" "F.Paste" "F.Mask")
 		(uuid "deca837c-2ff6-4ba3-a6c4-15548ff98a96")
 	)
 	(pad "2" smd circle
 		(at 2.54 0)
 		(size 1.8 1.8)
+		(property pad_prop_testpoint)
 		(layers "F.Cu" "F.Paste" "F.Mask")
 		(uuid "fbca81ec-9ca0-44f2-809c-66f5c2a77daf")
 	)
 	(pad "3" smd circle
 		(at 5.08 0)
 		(size 1.8 1.8)
+		(property pad_prop_testpoint)
 		(layers "F.Cu" "F.Paste" "F.Mask")
 		(uuid "7291c57a-cea6-41e7-9cae-8260e26217d9")
 	)
 	(pad "4" smd circle
 		(at 7.62 0)
 		(size 1.8 1.8)
+		(property pad_prop_testpoint)
 		(layers "F.Cu" "F.Paste" "F.Mask")
 		(uuid "6fdf710d-6847-483c-9ea2-f3741a97c5a6")
 	)
